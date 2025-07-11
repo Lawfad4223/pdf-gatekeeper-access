@@ -7,12 +7,9 @@ const Index = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [uploadedPDF, setUploadedPDF] = useState<string | null>(null);
 
-  const handleLogin = (email: string, password: string) => {
-    // Mock authentication - in real app, you'd validate against your backend
-    if (email && password) {
-      setIsAuthenticated(true);
-      console.log("User authenticated successfully");
-    }
+  const handleLogin = () => {
+    setIsAuthenticated(true);
+    console.log("User authenticated successfully");
   };
 
   const handleLogout = () => {
